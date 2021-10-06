@@ -1,29 +1,25 @@
+package level2;
+
 import java.awt.BorderLayout;
-import java.awt.FlowLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.awt.Graphics;
 
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
-import javax.swing.JScrollBar;
-import javax.swing.JScrollPane;
-import javax.swing.Timer;
+import javax.swing.JPanel;
 
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfByte;
 import org.opencv.core.MatOfRect;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
-import org.opencv.core.Size;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.objdetect.CascadeClassifier;
-import org.opencv.videoio.VideoCapture;
 
 public class Camera extends JFrame {
-	VideoCapture videoCapture = new VideoCapture(0);
+//	VideoCapture videoCapture = new VideoCapture(0);
 	Mat image = new Mat();
 	JLabel frame;
 	String xml = "haarcascade_frontalface_alt.xml";
@@ -36,36 +32,59 @@ public class Camera extends JFrame {
 	CascadeClassifier eyeDetect = new CascadeClassifier(xmlEye);
 	CascadeClassifier noseDetect = new CascadeClassifier(xmlNose);
 	CascadeClassifier mouthDetect = new CascadeClassifier(xmlMouth);
+	ImageIcon icon;
+	Mat glass;
+	ImageIcon glassImage;
+	int xGlass = 0, yGlass = 0;
+	int sizeFace;
 
 	public Camera() {
-		setLayout(new FlowLayout());
+		setLayout(new BorderLayout());
+		glassImage = new ImageIcon("glass2.png");
 
-		add(frame = new JLabel());
-		add(bt = new JButton("s"));
-		bt.addActionListener(new ActionListener() {
+//		add(frame = new JLabel());
+		add(new Draw());
 
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				scale += 0.1;
-				System.out.println(scale);
-				starCamera();
-
-			}
-		});
+//		add(bt = new JButton("s"));
+//		bt.addActionListener(new ActionListener() {
+//
+//			@Override
+//			public void actionPerformed(ActionEvent e) {
+//				scale += 0.1;
+//				System.out.println(scale);
+//				starCamera();
+//
+//			}
+//		});
 
 		setSize(500, 500);
 		setLocationRelativeTo(null);
 		setVisible(true);
 		setDefaultCloseOperation(EXIT_ON_CLOSE);
+		starCamera();
+//		Timer t = new Timer(1000 / 60, new ActionListener() {
+//
+//			@Override
+//			public void actionPerformed(ActionEvent e) {
+//				starCamera();
+//			}
+//		});
+//		t.start();
+	}
 
-		Timer t = new Timer(1000 / 60, new ActionListener() {
+	class Draw extends JPanel {
+		public Draw() {
+			setOpaque(false);
+		}
 
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				starCamera();
-			}
-		});
-		t.start();
+		@Override
+		public void paint(Graphics g) {
+			// TODO Auto-generated method stub
+			super.paint(g);
+
+			g.drawImage(icon.getImage(), 0, 0, null);
+			g.drawImage(glassImage.getImage(), xGlass, yGlass, null);
+		}
 	}
 
 	boolean checkEyeInFace(Rect eye, MatOfRect faces) {
@@ -79,8 +98,9 @@ public class Camera extends JFrame {
 	void starCamera() {
 		byte[] imageData;
 
-//		image = Imgcodecs.imread("steve2jpg.jpg");
-		videoCapture.read(image);
+		image = Imgcodecs.imread("cryjpeg.jpeg");
+		Mat glass = Imgcodecs.imread("glass2.png");
+//		videoCapture.read(image);
 		MatOfByte buf = new MatOfByte();
 		MatOfRect faces = new MatOfRect();
 		MatOfRect eyes = new MatOfRect();
@@ -97,13 +117,16 @@ public class Camera extends JFrame {
 		System.out.println(String.format("Detected %s faces", faces.toArray().length));
 		for (Rect face : faces.toArray()) {
 			Imgproc.rectangle(image, face, new Scalar(0, 0, 255));
+			int size = face.width / glass.width();
+			xGlass = face.x;
+			yGlass = (int) (face.y + face.height * 0.3);
+			sizeFace = face.width;
+//			Imgproc.resize(glass, glass, new Size(face.width, 30));
 
 		}
 		eyeDetect.detectMultiScale(grayFrame, eyes, 1.3, 5);
 		System.out.println(String.format("Detected %s eyes", eyes.toArray().length));
 		for (Rect eye : eyes.toArray()) {
-//			eye.x += face.x;
-//			eye.y += face.y;
 			Imgproc.rectangle(image, eye, new Scalar(255, 0, 0));
 		}
 		// Detection Eye
@@ -122,12 +145,16 @@ public class Camera extends JFrame {
 			Imgproc.rectangle(image, mouth, new Scalar(255, 250, 255));
 
 		System.out.println("------------------------------------------------------");
+//		Imgproc.filter2D(image, glass, 1, new Mat());
 
 		Imgcodecs.imencode(".jpg", image, buf);
+		MatOfByte byteGlass = new MatOfByte();
+		Imgcodecs.imencode(".jpg", glass, byteGlass);
 		imageData = buf.toArray();
-		ImageIcon icon = new ImageIcon(imageData);
-		frame.setIcon(icon);
-
+		icon = new ImageIcon(imageData);
+//		byte[] glassDate = byteGlass.toArray();
+//		glassImage = new ImageIcon(glassDate);
+		repaint();
 	}
 
 }
